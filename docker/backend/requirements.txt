@@ -1,0 +1,10 @@
+altair
+pandas
+huggingface_hub
+transformers
+scipy
+torch --index-url https://download.pytorch.org/whl/cu124
+torchvision
+torchaudio
+flask
+tqdm-loggable
