@@ -22,6 +22,9 @@ def get_tweets_and_sentiment():
     """
     Returns joined tweet and sentiment data for tweets between date_from and date_to.
     Returned data contains id, the date of the tweet of the sentiment the tweet and the sentiment score.
+
+    Expects json with two entries 'date_from' and 'date_to'.
+
     :return:
     """
     request_data = request.get_json()
@@ -37,6 +40,9 @@ def get_sentiments():
     """
     Returns sentiment data for tweets between date_from and date_to.
     Returned data contains id, the date of the tweet of the sentiment and the sentiment score.
+
+    Expects json with two entries 'date_from' and 'date_to'.
+
     :return:
     """
     request_data = request.get_json()
@@ -50,6 +56,9 @@ def get_sentiments():
 def get_sentiment_for_text():
     """
     Returns the sentiment score for the given text.
+
+    Expects json with one entry 'text'.
+
     :return:
     """
     request_data = request.get_json()
