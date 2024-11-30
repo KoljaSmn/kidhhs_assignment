@@ -1,7 +1,8 @@
-import pandas as pd
+import os
 from flask import Flask, jsonify, request, Response
 
-from kidhhs.config.config import BACKEND_PORT, TWEETS_AND_SENTIMENT_POST_NAME, SENTIMENT_POST_NAME, TEXT_SENTIMENT
+from kidhhs.config.config import BACKEND_PORT, TWEETS_AND_SENTIMENT_POST_NAME, SENTIMENT_POST_NAME, TEXT_SENTIMENT, \
+    DATABASE_PATH, DB_UPDATE
 from kidhhs.backend.sqlite import get_tweets_and_sentiment_from_to, get_sentiment_from_to
 from kidhhs.backend.sentiment_analysis import sentiment_for_text
 
@@ -65,6 +66,14 @@ def get_sentiment_for_text():
     response_data = {'sentiment': str(sentiment_for_text(request_data['text']))}
     return jsonify(response_data)
 
+
+@app.route(f'/{DB_UPDATE}', methods=['GET'])
+def get_last_db_update_time():
+    """
+    Returns the last time the database was updated.
+    :return:
+    """
+    return jsonify({'last_update': os.path.getmtime(DATABASE_PATH)})
 
 def run_app():
     app.run(host='0.0.0.0', port=BACKEND_PORT, debug=False, use_reloader=False)
