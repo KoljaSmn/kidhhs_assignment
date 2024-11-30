@@ -46,6 +46,80 @@ def _get_last_db_update():
     return request_answer['last_update']
 
 
+def _get_group_by_dataframe(dataframe, selectbox_key):
+    """
+    Function that groups tweet dataframe using the date and the selected time_step_option. E.g. day or Week.
+    :param dataframe:
+    :param selectbox_key:
+    :return:
+    """
+    # define selectbox to choose option to group by
+    time_step_options = ['Day', 'Week', 'Month', 'Year']
+    time_step_select_box = st.selectbox('Figure Group By', time_step_options,
+                                        index=2,
+                                        key=selectbox_key)
+
+    # first, group the dataframe by dates
+    df = dataframe.groupby('created_at')
+    # compute the mean sentiment for every date
+    sentiment_mean = df['sentiment'].mean().reset_index()
+    # compute the tweet count for every date
+    tweet_count = df['sentiment'].size().reset_index()
+    tweet_count = tweet_count.rename(columns={'sentiment': 'tweets'})
+    # merge tweet count and sentiment into a single dataframe
+    grouped_df = sentiment_mean.join(tweet_count.set_index('created_at'), on='created_at', how='left')
+
+    # fill dataframe with dates where no tweets existed
+    # compute the first and last date in the dataframe
+    min_date, max_date = grouped_df['created_at'].min(), grouped_df['created_at'].max()
+    # define list and dataframe containing every date between min and max date
+    datelist = [entry.strftime("%Y-%m-%d") for entry in pd.date_range(min_date, max_date)]
+    new_dataframe = pd.DataFrame.from_dict({'created_at': datelist})
+
+    # join the dataframe to the former dataframe to get an entry for every date
+    joined_grouped = new_dataframe.join(grouped_df.set_index('created_at'), on='created_at', how='outer')
+    # replace nan (sentiment, tweets for added dates) by 0
+    joined_grouped.fillna(value=0, inplace=True)
+    # compute sentiment x tweets to compute average later
+    joined_grouped['sentiment_times_tweets'] = joined_grouped['sentiment'] * joined_grouped['tweets']
+
+    # add week number, month, year based on the created_at date to the dataframe
+    joined_grouped['Week_Number'] = pd.to_datetime(joined_grouped['created_at'], errors='coerce').dt.strftime('%U')
+    joined_grouped['Month'] = pd.to_datetime(joined_grouped['created_at'], errors='coerce').dt.strftime('%m')
+    joined_grouped['Year'] = pd.to_datetime(joined_grouped['created_at'], errors='coerce').dt.strftime('%Y')
+
+    # define the key
+    if time_step_select_box == 'Day':
+        key = 'created_at'
+    elif time_step_select_box == 'Week':
+        key = 'Year - Week'
+        joined_grouped[key] = joined_grouped['Year'] + " - " + joined_grouped['Week_Number']
+    elif time_step_select_box == 'Month':
+        key = 'Year - Month'
+        joined_grouped[key] = joined_grouped['Year'] + " - " + joined_grouped['Month']
+    elif time_step_select_box == 'Year':
+        key = 'Year'
+
+    # group by the key
+    return joined_grouped.groupby(key), key
+
+
+def _get_grouped_by_data(dataframe, selectbox_key):
+    """
+    Computes average sentiment and number of tweet for every time step
+    :param dataframe:
+    :param selectbox_key:
+    :return:
+    """
+    grouped_sentiment, key = _get_group_by_dataframe(dataframe, selectbox_key)
+    grouped_dataframe: pd.DataFrame = (grouped_sentiment['sentiment_times_tweets'].sum() / grouped_sentiment[
+        'tweets'].sum()).reset_index()
+    grouped_dataframe.rename(columns={0: 'sentiment'}, inplace=True)
+    grouped_dataframe['tweets'] = grouped_sentiment['tweets'].sum().reset_index()['tweets']
+    grouped_dataframe = grouped_dataframe.sort_values(key)
+    return grouped_dataframe, key
+
+
 def init_frontend():
     """
     Initializes the streamlit page.
@@ -87,60 +161,8 @@ def init_frontend():
     # analysis of sentiments over time
     st.subheader("Sentiment Data Over Time")
 
-    def get_group_by_dataframe(dataframe, selectbox_key):
-        """
-        Function that groups tweet dataframe using the date and the selected time_step_option. E.g. day or Week.
-        :param dataframe:
-        :param selectbox_key:
-        :return:
-        """
-        time_step_options = ['Day', 'Week', 'Month', 'Year']
-
-        time_step_select_box = st.selectbox('Figure Group By', time_step_options,
-                                            index=2,
-                                            key=selectbox_key)
-
-        df = dataframe.groupby('created_at')
-        sentiment_mean = df['sentiment'].mean().reset_index()
-        tweet_count = df['sentiment'].size().reset_index()
-        tweet_count = tweet_count.rename(columns={'sentiment': 'tweets'})
-        grouped_df = sentiment_mean.join(tweet_count.set_index('created_at'), on='created_at', how='left')
-
-        min_date, max_date = grouped_df['created_at'].min(), grouped_df['created_at'].max()
-        datelist = [entry.strftime("%Y-%m-%d") for entry in pd.date_range(min_date, max_date)]
-        new_dataframe = pd.DataFrame.from_dict({'created_at': datelist})
-        joined_grouped = new_dataframe.join(grouped_df.set_index('created_at'), on='created_at', how='outer')
-        joined_grouped.fillna(value=0, inplace=True)
-        joined_grouped['sentiment_times_tweets'] = joined_grouped['sentiment'] * joined_grouped['tweets']
-
-        joined_grouped['Week_Number'] = pd.to_datetime(joined_grouped['created_at'], errors='coerce').dt.strftime('%U')
-        joined_grouped['Month'] = pd.to_datetime(joined_grouped['created_at'], errors='coerce').dt.strftime('%m')
-        joined_grouped['Year'] = pd.to_datetime(joined_grouped['created_at'], errors='coerce').dt.strftime('%Y')
-
-        if time_step_select_box == 'Day':
-            key = 'created_at'
-        elif time_step_select_box == 'Week':
-            key = 'Year - Week'
-            joined_grouped[key] = joined_grouped['Year'] + " - " + joined_grouped['Week_Number']
-        elif time_step_select_box == 'Month':
-            key = 'Year - Month'
-            joined_grouped[key] = joined_grouped['Year'] + " - " + joined_grouped['Month']
-        elif time_step_select_box == 'Year':
-            key = 'Year'
-
-        return joined_grouped.groupby(key), key
-
-    def get_grouped_by_data(dataframe, selectbox_key):
-        grouped_sentiment, key = get_group_by_dataframe(dataframe, selectbox_key)
-        grouped_dataframe: pd.DataFrame = (grouped_sentiment['sentiment_times_tweets'].sum() / grouped_sentiment[
-            'tweets'].sum()).reset_index()
-        grouped_dataframe.rename(columns={0: 'sentiment'}, inplace=True)
-        grouped_dataframe['tweets'] = grouped_sentiment['tweets'].sum().reset_index()['tweets']
-        grouped_dataframe = grouped_dataframe.sort_values(key)
-        return grouped_dataframe, key
-
     def sentiment_plot(dataframe, selectbox_key):
-        grouped_sentiment, key_sentiment = get_grouped_by_data(dataframe, selectbox_key)
+        grouped_sentiment, key_sentiment = _get_grouped_by_data(dataframe, selectbox_key)
         st.altair_chart(alt.Chart(grouped_sentiment).mark_line(point=True).encode(
             x=key_sentiment,
             y='sentiment'
@@ -157,7 +179,7 @@ def init_frontend():
 
     st.subheader("Number of Tweets Over Time")
     dataframe = tweets_df.copy()
-    grouped_number_of_tweets, key_number_of_tweets = get_grouped_by_data(dataframe,
+    grouped_number_of_tweets, key_number_of_tweets = _get_grouped_by_data(dataframe,
                                                                             'grouped_number_of_tweets'
                                                                             )
     grouped_number_of_tweets = grouped_number_of_tweets[[key_number_of_tweets, 'tweets']]
