@@ -14,7 +14,7 @@ LLM_BATCH_SIZE = 100
 
 N_ENTRIES_DATABASE = None # can be used to reduce the time for initialization, None for all entries
 
-BACKEND_URL = 'http://localhost' # 'http://backend' # use 'http://backend' when using docker compose and 'http://localhost' # when running both servers locally
+BACKEND_URL = 'http://backend' # 'http://backend' # use 'http://backend' when using docker compose and 'http://localhost' # when running both servers locally
 # the port to reach the backend
 BACKEND_PORT = 8080
 
