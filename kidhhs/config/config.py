@@ -2,7 +2,7 @@ import os
 import json
 
 # the data directory
-DATA_DIR = 'kidhhs/data/'
+DATA_DIR = 'data/'
 # directory for the covid dataset csv files
 COVID_TWITTER_DATASET_DIR = os.path.join(DATA_DIR, 'covid_twitter_dataset')
 # path to the sqlite database
