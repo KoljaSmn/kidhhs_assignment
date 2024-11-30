@@ -14,6 +14,14 @@ sys.path += ['.']
 from kidhhs.config.config import BACKEND_PORT, SENTIMENT_POST_NAME, TEXT_SENTIMENT, TWEETS_AND_SENTIMENT_POST_NAME, BACKEND_URL
 
 
+@st.cache_data
+def _load_tweet_data(date_from, date_to):
+    # load data for showing tweets
+    url = f"{BACKEND_URL}:{BACKEND_PORT}/{TWEETS_AND_SENTIMENT_POST_NAME}"
+    obj = {'date_from': date_from, 'date_to': date_to}
+    request_answer = requests.post(url, json=obj).json()
+    tweets_df = pd.DataFrame.from_dict(request_answer)
+    return tweets_df
 
 
 def init_frontend():
@@ -39,12 +47,7 @@ def init_frontend():
         submit_button = st.form_submit_button(label='Submit')
 
     if submit_button:
-
-        # load data for showing tweets
-        url = f"{BACKEND_URL}:{BACKEND_PORT}/{TWEETS_AND_SENTIMENT_POST_NAME}"
-        obj = {'date_from': str(from_date_input_tweets), 'date_to': str(to_date_input_tweets)}
-        request_answer = requests.post(url, json=obj).json()
-        tweets_df = pd.DataFrame.from_dict(request_answer)
+        tweets_df = _load_tweet_data(str(from_date_input_tweets), str(to_date_input_tweets))
 
         st.subheader("Tweets")
 
@@ -54,41 +57,51 @@ def init_frontend():
         # analysis of sentiments over time
         st.subheader("Sentiment Data Over Time")
 
-
-
-        def get_group_by_dataframe(selectbox_key):
+        def get_group_by_dataframe(dataframe, selectbox_key):
             time_step_select_box = st.selectbox('Figure Group By', ['Day', 'Week', 'Month', 'Year'], index=2,
                                                 key=selectbox_key)
-            tweets_df['Week_Number'] = pd.to_datetime(tweets_df['created_at'], errors='coerce').dt.strftime('%U')
-            tweets_df['Month'] = pd.to_datetime(tweets_df['created_at'], errors='coerce').dt.strftime('%m')
-            tweets_df['Year'] = pd.to_datetime(tweets_df['created_at'], errors='coerce').dt.strftime('%Y')
+            dataframe['Week_Number'] = pd.to_datetime(dataframe['created_at'], errors='coerce').dt.strftime('%U')
+            dataframe['Month'] = pd.to_datetime(dataframe['created_at'], errors='coerce').dt.strftime('%m')
+            dataframe['Year'] = pd.to_datetime(dataframe['created_at'], errors='coerce').dt.strftime('%Y')
 
             if time_step_select_box == 'Day':
                 key = 'created_at'
             elif time_step_select_box == 'Week':
                 key = 'Year - Week'
-                tweets_df[key] = tweets_df['Year'] + " - " + tweets_df['Week_Number']
+                dataframe[key] = dataframe['Year'] + " - " + dataframe['Week_Number']
             elif time_step_select_box == 'Month':
                 key = 'Year - Month'
-                tweets_df[key] = tweets_df['Year'] + " - " + tweets_df['Month']
+                dataframe[key] = dataframe['Year'] + " - " + dataframe['Month']
             elif time_step_select_box == 'Year':
                 key = 'Year'
 
-            return tweets_df.groupby(key)['sentiment'], key
+            return dataframe.groupby(key)['sentiment'], key
 
-        grouped_sentiment, key_sentiment = get_group_by_dataframe('grouped_sentiment')
-        grouped_sentiment = grouped_sentiment.mean().reset_index()
-        grouped_sentiment = grouped_sentiment.sort_values(key_sentiment)
-        st.altair_chart(alt.Chart(grouped_sentiment).mark_circle().encode(
-            x=key_sentiment,
-            y='sentiment'
-        ), use_container_width=True)
+
+        def sentiment_plot(dataframe, selectbox_key):
+            grouped_sentiment, key_sentiment = get_group_by_dataframe(dataframe, selectbox_key)
+            grouped_sentiment = grouped_sentiment.mean().reset_index()
+            grouped_sentiment = grouped_sentiment.sort_values(key_sentiment)
+            st.altair_chart(alt.Chart(grouped_sentiment).mark_line(point=True).encode(
+                x=key_sentiment,
+                y='sentiment'
+            ), use_container_width=True)
+
+        sentiment_plot(tweets_df.copy(), 'grouped_sentiment')
+
+        st.subheader("Normalized Sentiment Data Over Time")
+        st.text('Here the sentiment values are normalized to 0 mean and std 1 before computing the group-wise average.')
+        dataframe = tweets_df.copy()
+        mean, std = dataframe['sentiment'].mean(), dataframe['sentiment'].std()
+        dataframe['sentiment'] = (dataframe['sentiment'] - mean)/std
+        sentiment_plot(dataframe, 'grouped_normalized_sentiment')
 
         st.subheader("Number of Tweets Over Time")
-        grouped_number_of_tweets, key_number_of_tweets = get_group_by_dataframe('grouped_number_of_tweets')
+        dataframe = tweets_df.copy()
+        grouped_number_of_tweets, key_number_of_tweets = get_group_by_dataframe(dataframe, 'grouped_number_of_tweets')
         grouped_number_of_tweets = grouped_number_of_tweets.size().reset_index()
         grouped_number_of_tweets = grouped_number_of_tweets.sort_values(key_number_of_tweets)
-        st.altair_chart(alt.Chart(grouped_number_of_tweets).mark_circle().encode(
+        st.altair_chart(alt.Chart(grouped_number_of_tweets).mark_line(point=True).encode(
             x=key_number_of_tweets,
             y='sentiment'
         ), use_container_width=True)
