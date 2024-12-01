@@ -32,6 +32,7 @@ The project is structured as follows:
   - covid_twitter_dataset
     - ...csv
   - sqlite.db 
+  - config.json: Saves settings (e.g., whether database has been initialized already)
 - docker 
   - backend
     - Dockerfile for the backend app
@@ -54,7 +55,6 @@ The project is structured as follows:
     - sqlite.py: Defines database. Defines functions to read from the database.
   - config:
     - config.py: Allows configuration, ports paths etc.
-    - config.json: Saves settings (e.g., whether database has been initialized already)
   - frontend: 
     - app.py: Implements the streamlit app.
 
@@ -69,6 +69,9 @@ BUILDKIT_PROGRESS=plain docker compose  -f docker/compose.yaml up
 
 Then, the web app (frontend server) runs on localhost port 8081. 
 The backend server runs on port 8080.
+
+The repository already contains the created sqlite database. Remove it (or data/config.json) to recreate it.
+This can take a while however.
 
 When the backend is started for the first time, it will write the data from the csv-files to the database. The backend API is already working though and will return the batches of data that have already been written to the dataset.
 
