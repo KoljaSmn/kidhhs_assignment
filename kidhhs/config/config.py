@@ -8,7 +8,7 @@ COVID_TWITTER_DATASET_DIR = os.path.join(DATA_DIR, 'covid_twitter_dataset')
 # path to the sqlite database
 DATABASE_PATH = os.path.join(DATA_DIR, 'sqlite.db')
 # path to the config.json which saves information, e.g. whether the database has been initialized already
-CONFIG_JSON = 'kidhhs/config/config.json'
+CONFIG_JSON = os.path.join(DATA_DIR, 'config.json')
 # defines the batch size for the llm
 LLM_BATCH_SIZE = 100
 
