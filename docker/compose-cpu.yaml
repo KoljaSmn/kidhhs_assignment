@@ -1,0 +1,20 @@
+services:
+  backend:
+    build:
+      context: ./../
+      dockerfile: docker/backend/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./../:/home/kidhhs_assignment
+    hostname: backend
+  frontend:
+    build:
+      context: ./../
+      dockerfile: docker/frontend/Dockerfile
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./../:/home/kidhhs_assignment
+    hostname: frontend
+

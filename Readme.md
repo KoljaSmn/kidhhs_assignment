@@ -61,10 +61,18 @@ The project is structured as follows:
 
 ## Installation and Run
 We use Docker compose to build and run two services (backend and frontend).
-Run the following command to run the services from this working directory.:
+Run one of the following command to run the services from this working directory:
+
+When having a GPU available:
 
 ```
 BUILDKIT_PROGRESS=plain docker compose  -f docker/compose.yaml up
+```
+
+With no GPU available:
+
+```
+BUILDKIT_PROGRESS=plain docker compose  -f docker/compose-cpu.yaml up
 ```
 
 Then, the web app (frontend server) runs on localhost port 8081. 
