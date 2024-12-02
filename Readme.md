@@ -40,6 +40,8 @@ The project is structured as follows:
   - frontend
     - Dockerfile for the frontend app
     - requirements.txt for the frontend app
+  - compose.yaml: docker compose file when having a nvidia gpu available
+  - compose-cpu.yaml: docker compose file to run on a cpu
 - kidhhs: code
   - backend
     - api.py: Defines the flask API. The API offers four endpoints.
@@ -80,6 +82,6 @@ The backend server runs on port 8080.
 
 The repository already contains the created sqlite database. Remove it (or data/config.json) to recreate it.
 This can take a while however.
-
-When the backend is started for the first time, it will write the data from the csv-files to the database. The backend API is already working though and will return the batches of data that have already been written to the dataset.
-
+When the backend is then started for the first time, it will write the data from the csv-files to the database.
+The backend API is already working though and will return the batches of data that have already been written to the dataset.
+The frontend is started as soon as the backend API is running.
