@@ -23,7 +23,7 @@ Used tools:
   - Flask: Offers API for get/post requests to (mainly) return data from the dataset.  
   The Port is set in kidhhs/config/config.py, 8080 by default.
 - Frontend:
-  - Streamlit: Runs on port 8081 by default (set in docker/compose.yaml).
+  - Streamlit: Runs on port 8081 by default (set in docker/compose.yaml and docker/frontend/Dockerfile).
 
 
 ## Project structure
